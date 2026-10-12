@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude — Motion Reel 2026</title>
+<style>
+  @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url(fonts/InstrumentSerif-Italic.woff2) format("woff2"); }
+  @font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url(fonts/InstrumentSerif-Regular.woff2) format("woff2"); }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 100 800; src: url(fonts/JetBrainsMono-var.woff2) format("woff2"); }
+  @font-face { font-family: "ReelSans"; font-weight: 100 900; src: url(fonts/Inter-var.woff2) format("woff2"); }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: absolute; inset: 0; margin: auto; width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; }
+  #hint { position: fixed; left: 16px; bottom: 12px; font: 12px/1.4 "JetBrains Mono", monospace; color: #888; letter-spacing: .08em; }
+  body.render #hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<div id="hint">SPACE play/pause · ←/→ step frame · click to scrub</div>
+<audio id="a" src="audio/soundtrack.wav" preload="auto"></audio>
+<script src="reel.js"></script>
+<script>
+(async () => {
+  const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+  const audio = document.getElementById('a');
+  const render = new URLSearchParams(location.search).has('render');
+  await Promise.all([
+    'italic 400 100px "Instrument Serif"', '400 20px "JetBrains Mono"', '700 20px "JetBrains Mono"', '900 100px ReelSans',
+  ].map(f => document.fonts.load(f)));
+
+  if (render) {
+    document.body.classList.add('render');
+    window.REEL_CAPTURE = (frame, samples, type = 'image/png', q) => {
+      REEL.renderFrame(ctx, frame / REEL.FPS, { samples });
+      return canvas.toDataURL(type, q);
+    };
+    window.REEL_READY = true;
+    return;
+  }
+
+  // Live player: the audio element is the clock when it can play, otherwise wall time.
+  REEL.QUALITY.field = 3;
+  let playing = false, t = 0, last = performance.now();
+  const toggle = () => {
+    playing = !playing;
+    if (playing) { if (t >= REEL.DUR - .01) t = 0; audio.currentTime = t; audio.play().catch(() => {}); }
+    else audio.pause();
+    last = performance.now();
+  };
+  addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); toggle(); }
+    if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
+      playing = false; audio.pause();
+      t = Math.min(REEL.DUR, Math.max(0, t + (e.code === 'ArrowRight' ? 1 : -1) / REEL.FPS));
+    }
+  });
+  canvas.addEventListener('click', e => {
+    const r = canvas.getBoundingClientRect();
+    t = (e.clientX - r.left) / r.width * REEL.DUR;
+    audio.currentTime = t;
+    if (!playing) toggle();
+  });
+  const loop = now => {
+    if (playing) {
+      t = !audio.paused && audio.readyState >= 2 ? audio.currentTime : t + (now - last) / 1000;
+      if (t >= REEL.DUR) { t = REEL.DUR - 1e-3; playing = false; audio.pause(); }
+    }
+    last = now;
+    REEL.renderFrame(ctx, t, { samples: 1 });
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

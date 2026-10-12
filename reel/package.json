@@ -1,0 +1,12 @@
+{
+  "name": "claude-motion-reel-2026",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "./build.sh",
+    "preview": "SAMPLES=1 ./build.sh"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}
