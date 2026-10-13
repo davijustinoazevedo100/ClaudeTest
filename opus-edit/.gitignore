@@ -1,0 +1,6 @@
+node_modules/
+work/
+models/
+# footage stays local: the repository is public
+source/
+*.mp4

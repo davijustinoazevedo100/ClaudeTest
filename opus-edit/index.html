@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opus 5.5 — Edit</title>
+<style>
+  @font-face { font-family: "Anton"; font-weight: 400; src: url(fonts/Anton-Regular.woff2) format("woff2"); }
+  @font-face { font-family: "InterV"; font-weight: 100 900; src: url(fonts/Inter-var.woff2) format("woff2"); }
+  @font-face { font-family: "JBM"; font-weight: 100 800; src: url(fonts/JetBrainsMono-var.woff2) format("woff2"); }
+  @font-face { font-family: "Serif"; font-style: italic; font-weight: 400; src: url(fonts/InstrumentSerif-Italic.woff2) format("woff2"); }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: absolute; inset: 0; margin: auto; width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="edit.js"></script>
+<script>
+(async () => {
+  const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+  await Promise.all(['400 100px Anton', '900 100px InterV', '700 20px JBM', 'italic 400 80px Serif']
+    .map(f => document.fonts.load(f)));
+  const rig = await (await fetch('work/rig.json')).json();
+  EDIT.init(rig);
+
+  const pad = n => String(n + 1).padStart(4, '0');
+  const load = src => new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = src; });
+  const frame = async f => {
+    const [plate, matte] = await Promise.all([load(`work/plate/f${pad(f)}.jpg`), load(`work/matte/f${pad(f)}.png`)]);
+    EDIT.renderFrame(ctx, f, { plate, matte });
+  };
+
+  window.EDIT_CAPTURE = async (f, type = 'image/png', q) => { await frame(f); return canvas.toDataURL(type, q); };
+  window.EDIT_READY = true;
+
+  // Preview: index.html?f=300 shows one frame; otherwise plays through (slowly, it decodes every frame).
+  const q = new URLSearchParams(location.search);
+  if (q.has('render')) return;
+  if (q.has('f')) return frame(+q.get('f'));
+  let f = 0;
+  const tick = async () => { await frame(f); f = (f + 1) % rig.frames; requestAnimationFrame(tick); };
+  tick();
+})();
+</script>
+</body>
+</html>
