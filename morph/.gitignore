@@ -1,0 +1,6 @@
+frames/
+stills/
+shots/
+node_modules/
+audio/temp-track.wav
+__pycache__/

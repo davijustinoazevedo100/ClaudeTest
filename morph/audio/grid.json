@@ -1,0 +1,21 @@
+{
+  "source": "temp-track.wav",
+  "duration": 40.0,
+  "bpm": 119.9955,
+  "beat": 0.500019,
+  "offset": 3.9982,
+  "start_bar": 1,
+  "bars": 7,
+  "loop": 14.000519,
+  "first_beat": 0.4981,
+  "downbeat_phase": 3,
+  "downbeat_scores": [
+    -0.579,
+    -0.584,
+    -0.572,
+    1.735
+  ],
+  "beats_fitted": 70,
+  "jitter_ms": 2.33,
+  "tempo_estimate": 120.18000000002567
+}

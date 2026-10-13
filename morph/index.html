@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One Shape</title>
+<style>
+  @font-face { font-family: "Geist"; src: url(fonts/Geist-Variable.woff2) format("woff2"); font-weight: 100 900; font-display: block; }
+  :root { --canvas: #E8E5E0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--canvas); }
+  body { font-family: "Geist", sans-serif; text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased; }
+  #fit { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #stage { position: relative; width: 1440px; height: 1440px; overflow: hidden; background: var(--canvas); }
+  #world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+  #shape { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 50% 50%; }
+  .c { position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; }
+  .g { position: absolute; left: 0; top: 0; }
+  .tn { font-feature-settings: "tnum" 1; }
+  svg { display: block; overflow: visible; }
+  b, i, em { font-weight: inherit; font-style: normal; }
+
+  #btnLabel { font-size: 18px; line-height: 22px; font-weight: 560; letter-spacing: -0.01em; color: #fff; }
+  #art { background: #fff; overflow: hidden; }
+  #art svg { width: 100%; height: 100%; }
+  #wave { width: 21.4px; height: 0; }
+  #wave i { position: absolute; left: 0; top: 0; width: 3.4px; border-radius: 1.7px; background: #fff; }
+  #title { font-size: 16.5px; line-height: 20px; font-weight: 600; letter-spacing: -0.012em; color: #fff; }
+  #artist { font-size: 14.5px; line-height: 18px; font-weight: 450; color: rgba(255,255,255,.55); }
+  #ptrack { background: rgba(255,255,255,.22); }
+  #tEl, #tRe { font-size: 12.5px; line-height: 16px; font-weight: 520; color: rgba(255,255,255,.5); }
+  #blob { overflow: hidden; }
+  #reveal, #blobReveal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  #blobReveal { visibility: hidden; }
+  #spkInv, #tabsInv { position: absolute; left: 0; top: 0; }
+  #tabs, #tabsInv { width: 252px; height: 36px; }
+  #tabs span, #tabsInv span { position: absolute; top: 0; width: 84px; text-align: center; font-size: 15px; line-height: 36px; font-weight: 560; letter-spacing: -0.005em; }
+  #tabs span { color: rgba(255,255,255,.62); }
+  #tabsInv span { color: #0C0C0C; }
+  #lbl { font-size: 13px; line-height: 16px; font-weight: 500; color: rgba(255,255,255,.55); }
+  #total { font-size: 30px; line-height: 34px; font-weight: 620; letter-spacing: -0.025em; color: #fff; }
+  #days { width: 312px; height: 16px; }
+  #days span { position: absolute; top: 0; width: 30px; margin-left: -15px; text-align: center; font-size: 12px; line-height: 16px; font-weight: 520; color: #fff; }
+  #tip { width: 118px; height: 28px; border-radius: 14px; background: #fff; }
+  #tip span { position: absolute; left: 0; top: 0; width: 118px; text-align: center; font-size: 13px; line-height: 28px; font-weight: 560; color: #0C0C0C; }
+  #tip span em { color: rgba(12,12,12,.45); }
+  #key { display: flex; align-items: center; gap: 2px; font-size: 30px; line-height: 34px; font-weight: 600; color: #0C0C0C; }
+  #pal { width: 392px; }
+  #pholder { font-size: 17px; line-height: 20px; font-weight: 450; color: rgba(12,12,12,.36); }
+  #ptext { font-size: 17px; line-height: 20px; font-weight: 520; color: #0C0C0C; }
+  #ptext span { display: inline-block; }
+  #esc { height: 22px; padding: 0 7px; border-radius: 6px; background: rgba(12,12,12,.06); font-size: 12px; line-height: 22px; font-weight: 520; color: rgba(12,12,12,.45); }
+  #caret { width: 2px; height: 22px; border-radius: 1px; background: #0C0C0C; }
+  #psep { width: 392px; height: 1px; background: rgba(12,12,12,.08); }
+  #phl { width: 376px; height: 42px; border-radius: 12px; }
+  .row { width: 352px; height: 46px; }
+  .row svg { position: absolute; left: 0; top: 13px; }
+  .row .lab { position: absolute; left: 32px; top: 0; font-size: 15px; line-height: 46px; font-weight: 500; }
+  #ret { font-size: 15px; line-height: 20px; font-weight: 500; color: rgba(12,12,12,.4); }
+  #toast { display: flex; align-items: center; gap: 10px; font-size: 16px; line-height: 22px; font-weight: 560; letter-spacing: -0.01em; color: #fff; }
+  #cursor { position: absolute; left: 0; top: 0; transform-origin: 0 0; filter: drop-shadow(0 1.5px 2px rgba(0,0,0,.22)); }
+  #hud { position: fixed; left: 12px; bottom: 10px; font: 500 12px/1.4 "Geist", sans-serif; color: rgba(0,0,0,.45); font-feature-settings: "tnum" 1; user-select: none; }
+  body.render #hud { display: none; }
+</style>
+</head>
+<body>
+<div id="fit"><div id="stage">
+  <div id="world">
+    <div id="shape">
+      <!-- colour flips spread from a point instead of fading through grey -->
+      <div class="c" id="reveal"></div>
+      <!-- 1 button -->
+      <div class="c" id="btnLabel">Start listening</div>
+      <!-- 2 loader, 3 check -->
+      <svg class="c" id="loader" width="72" height="72" viewBox="-36 -36 72 72">
+        <circle r="17" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="3"/>
+        <circle id="arc" r="17" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <svg class="c" id="check" width="72" height="72" viewBox="-36 -36 72 72">
+        <path id="checkPath" pathLength="100" d="M-10.5 1 L-3.4 8 L11 -7" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <!-- 4 island + 5 player -->
+      <div class="c" id="art">
+        <svg viewBox="0 0 100 100"><g id="disc">
+          <circle cx="50" cy="50" r="38" fill="#0C0C0C"/>
+          <circle cx="50" cy="50" r="31" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1.4"/>
+          <circle cx="50" cy="50" r="24.5" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1.4"/>
+          <circle cx="50" cy="50" r="13" fill="#fff"/>
+          <circle cx="50" cy="42.5" r="2.2" fill="#0C0C0C"/>
+        </g></svg>
+      </div>
+      <div class="c" id="wave"><i></i><i></i><i></i><i></i></div>
+      <div class="c" id="title"></div>
+      <div class="c" id="artist"></div>
+      <div class="c" id="ptrack"></div>
+      <div class="c tn" id="tEl"></div>
+      <div class="c tn" id="tRe"></div>
+      <svg class="c" id="prev" width="26" height="26" viewBox="0 0 24 24"><path d="M11 6.6v10.8L3.6 12zM20.4 6.6v10.8L13 12z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      <svg class="c" id="pp" width="30" height="30" viewBox="0 0 24 24"><path id="ppA" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path id="ppB" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      <svg class="c" id="next" width="26" height="26" viewBox="0 0 24 24"><path d="M13 6.6v10.8l7.4-5.4zM3.6 6.6v10.8L11 12z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      <!-- 7 volume slider (the icon is drawn twice: black on the track, white inside the fill) -->
+      <svg class="c spk" id="spk" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0C0C0C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.6 9.4h2.8l4-3.5v12.2l-4-3.5H3.6z" fill="#0C0C0C"/><path d="M14.2 9.6a3.4 3.4 0 0 1 0 4.8"/><path d="M16.9 7.2a6.8 6.8 0 0 1 0 9.6"/><path d="M19.6 4.8a10.2 10.2 0 0 1 0 14.4"/>
+      </svg>
+      <!-- 9 tabs (labels drawn twice: white on the bar, black inside the indicator) -->
+      <div class="c" id="tabs"><span style="left:0">Week</span><span style="left:84px">Month</span><span style="left:168px">Year</span></div>
+      <!-- the blob: progress fill → volume fill → toggle knob → tab indicator -->
+      <div class="c" id="blob">
+        <div id="blobReveal"></div>
+        <svg class="spk" id="spkInv" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3.6 9.4h2.8l4-3.5v12.2l-4-3.5H3.6z" fill="#fff"/><path d="M14.2 9.6a3.4 3.4 0 0 1 0 4.8"/><path d="M16.9 7.2a6.8 6.8 0 0 1 0 9.6"/><path d="M19.6 4.8a10.2 10.2 0 0 1 0 14.4"/>
+        </svg>
+        <div id="tabsInv"><span style="left:0">Week</span><span style="left:84px">Month</span><span style="left:168px">Year</span></div>
+      </div>
+      <!-- 10 chart -->
+      <div class="g" id="card">
+        <div class="c" id="lbl">Listening time</div>
+        <div class="c tn" id="total"></div>
+        <svg class="c" id="plot" width="312" height="106" viewBox="0 0 312 106">
+          <defs><clipPath id="clipA"><rect id="clipR" x="-4" y="-30" width="0" height="150"/></clipPath></defs>
+          <g stroke="rgba(255,255,255,.09)" stroke-width="1"><line x1="0" x2="312" y1="0.5" y2="0.5"/><line x1="0" x2="312" y1="53" y2="53"/><line x1="0" x2="312" y1="105.5" y2="105.5"/></g>
+          <path id="area" fill="rgba(255,255,255,.07)" clip-path="url(#clipA)"/>
+          <path id="line" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="c" id="hov" width="312" height="106" viewBox="0 0 312 106">
+          <line id="guide" y1="0" y2="106" stroke="rgba(255,255,255,.26)" stroke-width="1.2"/>
+          <circle id="dot" r="5" fill="#fff" stroke="#0C0C0C" stroke-width="2.6"/>
+        </svg>
+        <div class="c" id="days"></div>
+        <div class="c" id="tip"><span>Thu <em>·</em> 2h 48m</span><span>Fri <em>·</em> 2h 12m</span><span>Sat <em>·</em> 4h 05m</span></div>
+      </div>
+      <!-- 11 ⌘K (Geist has no ⌘, so it is drawn at the K's stroke weight) -->
+      <div class="c" id="key">
+        <svg width="22" height="22" viewBox="-12 -12 24 24"><path d="M4 -7.6V7.6A3.6 3.6 0 1 0 7.6 4H-7.6A3.6 3.6 0 1 0 -4 7.6V-7.6A3.6 3.6 0 1 0 -7.6 -4H7.6A3.6 3.6 0 1 0 4 -7.6Z" fill="none" stroke="#0C0C0C" stroke-width="2.7" stroke-linejoin="round"/></svg><span>K</span>
+      </div>
+      <!-- 12 command palette -->
+      <div class="g" id="pal">
+        <svg class="c" id="psearch" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0C0C0C" stroke-width="1.7" stroke-linecap="round"><circle cx="8.6" cy="8.6" r="5.6"/><path d="M12.8 12.8 17 17"/></svg>
+        <div class="c" id="pholder">Search commands…</div>
+        <div class="c" id="esc">esc</div>
+        <div class="c" id="ptext"><span>s</span><span>h</span><span>a</span></div>
+        <div class="c" id="caret"></div>
+        <div class="c" id="psep"></div>
+        <div class="c" id="phl"></div>
+        <div class="c row" id="row0"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0C0C0C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5V3.2M6.8 6.2 10 3l3.2 3.2M6.6 9h-1A1.6 1.6 0 0 0 4 10.6v4.8A1.6 1.6 0 0 0 5.6 17h8.8a1.6 1.6 0 0 0 1.6-1.6v-4.8A1.6 1.6 0 0 0 14.4 9h-1"/></svg><span class="lab"><b></b><i></i></span></div>
+        <div class="c row" id="row1"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0C0C0C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h10M3.5 10h10M3.5 14.5h5.5M15 11.8v6M12 14.8h6"/></svg><span class="lab"><b></b><i></i></span></div>
+        <div class="c row" id="row2"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0C0C0C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="6.8" r="3.3"/><path d="M3.8 17c.9-3 3.3-4.6 6.2-4.6s5.3 1.6 6.2 4.6"/></svg><span class="lab"><b></b><i></i></span></div>
+        <div class="c row" id="row3"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0C0C0C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16.2 12.4A6.6 6.6 0 0 1 7.6 3.8a6.6 6.6 0 1 0 8.6 8.6z"/></svg><span class="lab"><b></b><i></i></span></div>
+        <div class="c row" id="row4"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0C0C0C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.2h2.4c1.3 0 2.2.6 2.9 1.6l3.4 4.9c.7 1 1.6 1.6 2.9 1.6H17M14.6 11.9 17 14.3l-2.4 2.4M3 14.3h2.4c1 0 1.8-.4 2.4-1M12 7.2c.6-.6 1.4-1 2.4-1H17M14.6 3.8 17 6.2l-2.4 2.4"/></svg><span class="lab"><b></b><i></i></span></div>
+        <div class="c" id="ret">↵</div>
+      </div>
+      <!-- 13 toast -->
+      <div class="c" id="toast"><svg width="22" height="22" viewBox="-11 -11 22 22"><circle r="11" fill="#fff"/><path id="tCheck" pathLength="100" d="M-4.8 .2-1.5 3.4 4.9-3.1" fill="none" stroke="#0C0C0C" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Link copied</span></div>
+    </div>
+  </div>
+  <svg id="cursor" width="33" height="47.4" viewBox="0 0 24 34.5"><path d="M2 1.8v24.6l6.1-5.7 4.1 9.6 4.3-1.8-4-9.4h8.3z" fill="#0C0C0C" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+</div></div>
+<div id="hud"></div>
+<audio id="aud" preload="auto"></audio>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const P = new URLSearchParams(location.search);
+const RENDER = P.has('render');
+if (RENDER) document.body.classList.add('render');
+
+// ─── time ────────────────────────────────────────────────────────────────
+// One beat comes from the song's measured grid; 7 bars of 4/4 is the loop.
+const B = +P.get('beat') || 0.5;
+const T = 28 * B;
+const at = (bar, beat, frac = 0) => ((bar - 1) * 4 + beat - 1 + frac) * B;
+const TRACK = { title: P.get('title') || 'Temp Track', artist: P.get('artist') || '120 BPM placeholder', dur: +P.get('dur') || 178 };
+
+// ─── math ────────────────────────────────────────────────────────────────
+const TAU = 2 * Math.PI;
+const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
+const mix = (a, b, u) => a + (b - a) * u;
+const mod = (x, m) => ((x % m) + m) % m;
+const smooth = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+const minjerk = u => (u = clamp(u), u * u * u * (10 + u * (6 * u - 15)));
+const unjerk = s => { let lo = 0, hi = 1; for (let i = 0; i < 48; i++) { const m = (lo + hi) / 2; if (minjerk(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
+const r3 = x => Math.round(x * 1000) / 1000;
+const r4 = x => Math.round(x * 10000) / 10000;
+const hash = (a, b) => { let h = Math.imul(a, 374761393) + Math.imul(b, 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+
+// Closed-form spring step response: at rest at 0, target 1. sp = { r: response (s), z: damping ratio }.
+function step(dt, sp) {
+  if (dt <= 0) return 0;
+  const w = TAU / sp.r, z = sp.z;
+  if (z >= 1) return 1 - Math.exp(-w * dt) * (1 + w * dt);
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * dt) * (Math.cos(wd * dt) + (z * w / wd) * Math.sin(wd * dt));
+}
+// Free response: displacement x0 and velocity v0 relative to the target at dt = 0.
+function free(dt, x0, v0, sp) {
+  if (dt <= 0) return x0;
+  const w = TAU / sp.r, z = sp.z;
+  if (z >= 1) return Math.exp(-w * dt) * (x0 + (v0 + w * x0) * dt);
+  const wd = w * Math.sqrt(1 - z * z);
+  return Math.exp(-z * w * dt) * (x0 * Math.cos(wd * dt) + ((v0 + z * w * x0) / wd) * Math.sin(wd * dt));
+}
+
+const SP = {
+  shape: { r: 0.36, z: 0.84 },   // ≈0.8 % overshoot
+  cam:   { r: 0.66, z: 0.96 },
+  color: { r: 0.2,  z: 1 },
+  press: { r: 0.12, z: 0.9 },
+  fast:  { r: 0.2,  z: 0.92 },
+  lead:  { r: 0.2,  z: 0.82 },   // leading edge of the knob / indicator
+  trail: { r: 0.42, z: 0.9 },    // trailing edge
+  in:    { r: 0.26, z: 1 },
+  out:   { r: 0.15, z: 1 },
+  draw:  { r: 0.62, z: 1 },
+  tick:  { r: 0.32, z: 1 },
+  back:  { r: 0.32, z: 0.74 },   // rubber band release
+  caret: { r: 0.1,  z: 1 },
+};
+
+// A value whose target changes many times = its last target + one spring per change.
+// Each change also contributes from the previous loop, so the value is periodic in T.
+class Track {
+  constructor(sp) { this.sp = sp; this.keys = []; this.ready = false; }
+  to(t, v, sp) { this.keys.push({ t: mod(t, T), v, sp: sp || this.sp }); this.ready = false; return this; }
+  prep() {
+    this.keys.sort((a, b) => a.t - b.t);
+    let prev = this.keys[this.keys.length - 1].v;
+    this.base = prev;
+    for (const k of this.keys) { k.d = k.v - prev; prev = k.v; }
+    this.ready = true;
+  }
+  at(t) {
+    if (!this.ready) this.prep();
+    let v = this.base;
+    for (const k of this.keys) if (k.d !== 0) v += k.d * (step(t - k.t, k.sp) + step(t - k.t + T, k.sp));
+    return v;
+  }
+}
+// Content visibility: a spring in at a, a faster spring out at b (b may run past the loop end).
+class Win {
+  constructor(a, b, si = SP.in, so = SP.out) { this.a = mod(a, T); this.b = this.a + (b - a); this.si = si; this.so = so; }
+  at(t) {
+    let v = 0;
+    for (const m of [0, T]) v += step(t - this.a + m, this.si) - step(t - this.b + m, this.so);
+    return clamp(v);
+  }
+}
+const win = (a, b, si, so) => new Win(a, b, si, so);
+
+// ─── beat grid ───────────────────────────────────────────────────────────
+const E = {
+  click1: at(1, 1), check: at(1, 3), island: at(1, 4),
+  expand: at(2, 1), play: at(2, 2), grab: at(2, 3), drop: at(2, 4),
+  slider: at(3, 1), vgrab: at(3, 2), vmax: at(3, 3), vdrop: at(3, 4),
+  toggle: at(4, 1), flip: at(4, 2), tabs: at(4, 3), tab: at(4, 4),
+  chart: at(5, 1), draw: at(5, 2), hover: at(5, 3), peak: at(5, 4),
+  cmdk: at(6, 1), palette: at(6, 2), k1: at(6, 3), k2: at(6, 3, 0.5), k3: at(6, 4),
+  enter: at(7, 1), toast: at(7, 2), back: at(7, 3), hoverBtn: at(7, 4),
+};
+const PRESS = 0.12;           // mouse-down this long before a click lands on the beat
+
+// ─── world layout (px at 1x; the camera zooms) ──────────────────────────
+const BAR = { l: -152, w: 304, y: 6 };                  // progress bar inside the player
+const SL = { l: -156, w: 312, r: 156 };                 // volume slider track
+const TAB0 = -302, TABW = 84;                           // left edge of the first tab
+const CARD = { l: -308, t: -18 };                       // chart card top-left (= tabs top-left)
+const PLOT = { l: CARD.l + 20, t: CARD.t + 130, w: 312, h: 106 };
+const PAL = { l: -328, t: -27 };
+const palH = n => 76 + 46 * n;
+const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const MIN = [112, 146, 98, 168, 132, 245, 203];          // minutes per day, 18h 24m in total
+const dayX = i => PLOT.l + PLOT.w * i / 6;
+
+// ─── the shape ───────────────────────────────────────────────────────────
+const S = { cx: new Track(SP.shape), cy: new Track(SP.shape), w: new Track(SP.shape), h: new Track(SP.shape),
+            r: new Track(SP.shape), press: new Track(SP.press), hover: new Track(SP.fast) };
+const key = (t, o, sp) => { for (const k in o) S[k].to(t, o[k], sp); };
+key(E.click1, { w: 72, h: 72, r: 36 });                                  // loader
+key(E.check, { w: 84, h: 84, r: 42 }); key(E.check + 0.09, { w: 72, h: 72, r: 36 });   // success pulse
+key(E.island, { w: 236, h: 56, r: 28 });
+key(E.expand, { w: 344, h: 212, r: 32 });                                // player
+key(E.slider, { cy: 6, w: 312, h: 56, r: 28 });                          // volume slider (flips white, see FLIPS)
+key(E.toggle, { cx: -100, w: 112, h: 64, r: 32 });                       // toggle, left edge fixed
+key(E.tabs, { cx: -176, w: 264, h: 48, r: 24 });                         // tabs, right edge fixed
+key(E.chart, { cx: -132, cy: 126, w: 352, h: 288 });                     // chart card, top-left fixed
+key(E.cmdk, { w: 104, h: 88, r: 22 });                                   // ⌘K keycap
+key(E.palette, { w: 392, h: palH(5), r: 20 });
+key(E.k1, { h: palH(3), cy: PAL.t + palH(3) / 2 });                      // filtering, top edge fixed
+key(E.k2, { h: palH(2), cy: PAL.t + palH(2) / 2 });
+key(E.k3, { h: palH(1), cy: PAL.t + palH(1) / 2 });
+key(E.enter + 0.03, { w: 248, h: 56, r: 28 });                           // toast
+key(E.back, { cx: 0, cy: 0, w: 264, h: 64, r: 32 });                     // button again
+// presses
+for (const [t, s] of [[E.click1, 0.965], [E.expand, 0.975], [E.flip, 0.95]]) { S.press.to(t - PRESS, s); S.press.to(t, 1); }
+S.press.to(E.cmdk + 0.15, 0.94); S.press.to(E.cmdk + 0.28, 1);           // the keycap dips
+S.hover.to(E.hoverBtn - 0.05, 1); S.hover.to(E.click1 + 0.04, 0);
+
+// ─── camera: each state fills the frame ────────────────────────────────
+const C = { fx: new Track(SP.cam), fy: new Track(SP.cam), lz: new Track(SP.cam) };
+const cam = (t, o) => { for (const k in o) if (k === 'z') C.lz.to(t, Math.log(o.z)); else C[k].to(t, o[k]); };
+cam(E.click1 + 0.02, { z: 6.4 });                       // loader
+cam(E.check, { z: 6.9 });                               // push in on success
+cam(E.island, { z: 3.8 });
+cam(E.expand, { z: 3.1 });                              // player
+cam(E.grab, { fy: BAR.y, z: 4.35 });                    // onto the progress bar
+cam(E.slider, { z: 3.6 });
+cam(E.vgrab, { fx: 44, z: 3.2 });                       // make room for the drag past max
+cam(E.toggle, { fx: -100, z: 5.6 });
+cam(E.tabs, { fx: -176, z: 4.15 });
+cam(E.chart, { fx: -132, fy: 126, z: 3.25 });
+cam(E.cmdk, { z: 5.4 });                                // keycap
+cam(E.palette, { z: 3.0 });
+cam(E.k1, { fy: PAL.t + palH(3) / 2, z: 3.2 });         // follow the palette as it shrinks
+cam(E.k2, { fy: PAL.t + palH(2) / 2, z: 3.35 });
+cam(E.k3, { fy: PAL.t + palH(1) / 2, z: 3.5 });
+cam(E.enter + 0.03, { z: 3.75 });                       // toast
+cam(E.back, { fx: 0, fy: 0, z: 3.25 });                 // button
+
+// ─── cursor path (world coordinates, min-jerk moves with a slight bow) ──
+const moves = [];
+const mv = (t0, t1, x, y, arc = 0.07) => moves.push({ t0, t1, x, y, arc });
+function cursorAt(t) {
+  const last = moves[moves.length - 1];
+  let px = last.x, py = last.y;
+  for (const m of moves) {
+    if (t < m.t0) break;
+    if (t < m.t1) {
+      const s = minjerk((t - m.t0) / (m.t1 - m.t0));
+      const dx = m.x - px, dy = m.y - py, L = Math.hypot(dx, dy) || 1, bow = m.arc * L * Math.sin(Math.PI * s);
+      return { x: px + dx * s - dy / L * bow, y: py + dy * s + dx / L * bow };
+    }
+    px = m.x; py = m.y;
+  }
+  return { x: px, y: py };
+}
+// A drag move timed so its straight path crosses `xCross` exactly at `tCross`.
+const solveMove = (t0, x0, x1, xCross, tCross) => t0 + (tCross - t0) / unjerk((xCross - x0) / (x1 - x0));
+
+const P0 = 0.27;                                             // paused a quarter of the way in, whatever the song's length
+const SCRUB = 0.62;                                          // where the scrub lets go
+const xGrab = BAR.l + BAR.w * (P0 + (E.grab - E.play) / TRACK.dur);
+const xScrub = BAR.l + BAR.w * SCRUB;
+const L0 = SCRUB + (E.slider - E.drop) / TRACK.dur;          // volume starts where the playhead was
+const xFill = SL.l + SL.w * L0;
+const OVER = 80;                                             // how far past max the cursor pulls
+const xThu = dayX(3), xFri = dayX(4), xSat = dayX(5);
+const BTN_P = { x: 46, y: 14 };
+
+mv(E.click1 + 0.24, E.click1 + 0.7, 72, 42, 0.12);                 // drift aside while it loads
+mv(E.expand - 0.62, E.expand - PRESS - 0.02, 64, 8, -0.08);          // onto the island
+mv(E.play - 0.46, E.play - PRESS - 0.02, 3, 71, 0.1);                // to play
+mv(E.grab - 0.44, E.grab - 0.06, xGrab, 7, -0.06);                   // onto the playhead
+mv(E.grab + 0.04, E.drop - 0.06, xScrub, 7, 0);                      // scrub
+mv(E.slider - 0.04, E.vgrab - 0.12, xFill, 9, 0.14);                 // onto the volume fill edge
+mv(E.vgrab + 0.02, solveMove(E.vgrab + 0.02, xFill, SL.r + OVER, SL.r, E.vmax), SL.r + OVER, 9, 0);  // past max
+mv(E.vdrop + 0.12, E.flip - PRESS - 0.04, -95, 18, 0.06);            // to the toggle
+mv(E.tabs - 0.02, E.tab - PRESS - 0.02, -256, 16, -0.1);             // to Week
+mv(E.draw - 0.04, E.hover - 0.04, xThu + 2, 178, 0.1);               // into the chart, Thursday
+mv(E.hover + 0.1, solveMove(E.hover + 0.1, xThu + 2, xSat + 1, (xFri + xSat) / 2, E.peak), xSat + 1, 156, 0);  // to Saturday
+mv(E.toast + 0.06, E.hoverBtn - 0.08, BTN_P.x, BTN_P.y, 0.1);        // back to the button
+
+const CP = new Track(SP.press);                                      // cursor press scale
+for (const t of [E.click1, E.expand, E.play, E.flip, E.tab]) { CP.to(t - PRESS, 0.86); CP.to(t, 1); }
+for (const [a, b] of [[E.grab, E.drop], [E.vgrab, E.vdrop]]) { CP.to(a, 0.88); CP.to(b, 1); }
+const cursorVis = win(E.toast, E.cmdk + T, SP.in, { r: 0.18, z: 1 });  // hidden while typing, like macOS
+
+// ─── direct manipulation ────────────────────────────────────────────────
+function progress(t) {
+  if (t < E.play) return P0;
+  if (t < E.grab) return P0 + (t - E.play) / TRACK.dur;
+  if (t <= E.drop) return clamp((cursorAt(t).x - BAR.l) / BAR.w);
+  return SCRUB + (t - E.drop) / TRACK.dur;
+}
+function level(t) {
+  if (t < E.vgrab) return L0;
+  if (t <= E.vdrop) return clamp((cursorAt(t).x - SL.l) / SL.w);
+  return 1;
+}
+const RB = 150, rubber = x => (1 - 1 / (x * 0.8 / RB + 1)) * RB;   // iOS-style rubber band
+const stretchHeld = t => rubber(Math.max(0, cursorAt(t).x - SL.r));
+const REL = { x: stretchHeld(E.vdrop), v: (stretchHeld(E.vdrop) - stretchHeld(E.vdrop - 1e-3)) / 1e-3 };
+function stretch(t) {
+  if (t < E.vgrab) return 0;
+  if (t <= E.vdrop) return stretchHeld(t);
+  return free(t - E.vdrop, REL.x, REL.v, SP.back);          // springs back from wherever it was
+}
+const thick = new Track(SP.fast).to(E.grab, 10).to(E.drop, 4);
+
+function shapeAt(t) {
+  let cx = S.cx.at(t), cy = S.cy.at(t), w = S.w.at(t), h = S.h.at(t);
+  const st = stretch(t);
+  if (st !== 0) { const w0 = w; w += st; cx += st / 2; h *= Math.sqrt(w0 / w); }
+  const r = Math.min(S.r.at(t), w / 2, h / 2);
+  return { cx, cy, w, h, r, x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 };
+}
+
+// The blob is one element all the way: progress fill → volume fill → toggle knob → tab indicator.
+const K = { l: new Track(SP.shape), r: new Track(SP.shape), t: new Track(SP.shape), b: new Track(SP.shape), rad: new Track(SP.shape) };
+const knob = (t, o) => { for (const k in o) K[k].to(t, o[k][0], o[k][1]); };
+knob(E.toggle, { l: [-150], r: [-98], t: [-20], b: [32], rad: [26] });              // off
+knob(E.flip, { l: [-102, SP.trail], r: [-50, SP.lead] });                            // on: right edge leads
+knob(E.tabs, { l: [TAB0 + 2 * TABW, SP.lead], t: [-12], b: [24], rad: [18] });      // indicator under Year
+knob(E.tab, { l: [TAB0, SP.lead], r: [TAB0 + TABW, SP.trail] });                     // → Week: left edge leads
+// Colour flips (0 = ink, 1 = paper) never fade through grey: the new colour grows inside the shape,
+// either as the shape itself scaled up from the point of the action, or (the toggle) as a fill that
+// sweeps in behind the knob. The blob flips inside the same region, so a fill inverts with its track.
+const FLIP_SP = { r: 0.3, z: 0.86 };
+const FLIPS = [
+  { t: E.slider, to: 1, kind: 'grow', o: cursorAt(E.slider) },            // from the cursor that let go of the playhead
+  { t: E.flip, to: 0, kind: 'sweep', sp: { r: 0.4, z: 0.9 } },             // painted in behind the knob
+  { t: E.cmdk, to: 1, kind: 'grow', o: { x: -132, y: 126 } },              // the keycap grows out of the card's centre
+  { t: E.enter + 0.03, to: 0, kind: 'grow', o: { x: PAL.l + 196, y: PAL.t + 91 } },  // the toast grows out of the selected row
+];
+const BLOB_FLIPS = [{ t: E.slider, to: 0 }, { t: E.flip, to: 1 }];
+function flipAt(flips, t) {
+  let k = flips.length - 1, dt = t - flips[k].t + T;                       // default: the last flip of the previous loop
+  flips.forEach((f, i) => { if (f.t <= t) { k = i; dt = t - f.t; } });
+  const f = flips[k];
+  return { ...f, from: flips[(k + flips.length - 1) % flips.length].to, p: step(dt, f.sp || FLIP_SP) };
+}
+// The new colour's region in world coordinates, for flip f at progress p over shape rect s.
+const OVERGROW = 1.12;                                                       // finish before the spring's slow tail
+function flipRegion(f, p, s) {
+  const q = p * OVERGROW;
+  if (f.kind === 'sweep') { const x1 = s.x0 + s.w * q; return { x0: s.x0, y0: s.y0, x1, y1: s.y1, r: Math.min(s.r, (x1 - s.x0) / 2) }; }
+  return { x0: f.o.x + (s.x0 - f.o.x) * q, y0: f.o.y + (s.y0 - f.o.y) * q, x1: f.o.x + (s.x1 - f.o.x) * q, y1: f.o.y + (s.y1 - f.o.y) * q, r: s.r * Math.min(q, 1) };
+}
+const insetOf = (g, b) => `inset(${[g.y0 - b.y0, b.x1 - g.x1, b.y1 - g.y1, g.x0 - b.x0].map(v => r3(Math.max(0, v)) + 'px').join(' ')} round ${r3(Math.max(0, g.r))}px)`;
+const shapeLum = t => { const f = flipAt(FLIPS, t); return mix(f.from, f.to, clamp(f.p * OVERGROW)); };
+
+const rectOf = (x0, y0, x1, y1, r) => ({ x0, y0, x1, y1, r });
+const progressRect = t => { const th = thick.at(t); return rectOf(BAR.l, BAR.y - th / 2, BAR.l + Math.max(th, BAR.w * progress(t)), BAR.y + th / 2, th / 2); };
+const fillRect = t => { const s = shapeAt(t); return rectOf(s.x0, s.y0, Math.max(s.x0 + s.h, s.x0 + level(t) * s.w), s.y1, s.h / 2); };
+const knobRect = t => rectOf(K.l.at(t), K.t.at(t), K.r.at(t), K.b.at(t), K.rad.at(t));
+// Hand a value over to a new driver: the new driver plus the old offset, decaying on a spring.
+function handoff(t, ts, from, to, sp) {
+  const a = from(ts), b = to(ts), c = to(t), k = 1 - step(t - ts, sp);
+  return rectOf(c.x0 + (a.x0 - b.x0) * k, c.y0 + (a.y0 - b.y0) * k, c.x1 + (a.x1 - b.x1) * k, c.y1 + (a.y1 - b.y1) * k, c.r + (a.r - b.r) * k);
+}
+const volumeRect = t => handoff(t, E.slider, progressRect, fillRect, SP.shape);
+const blobAt = t => t < E.slider ? progressRect(t) : t < E.toggle ? volumeRect(t) : handoff(t, E.toggle, volumeRect, knobRect, SP.shape);
+
+// ─── shared elements in the island → player ────────────────────────────
+const A = { x: new Track(SP.shape), y: new Track(SP.shape), s: new Track(SP.shape), r: new Track(SP.shape) };
+for (const [k, isl, ply] of [['x', -107, -152], ['y', -17, -86], ['s', 34, 64], ['r', 9, 14]]) A[k].to(E.island - 0.3, isl).to(E.expand, ply);
+const W = { x: new Track(SP.shape), y: new Track(SP.shape) };      // waveform: right edge, centre y
+W.x.to(E.island - 0.3, 102).to(E.expand, 152); W.y.to(E.island - 0.3, 0).to(E.expand, -54);
+const ppPress = new Track(SP.press).to(E.play - PRESS, 0.82).to(E.play, 1);
+
+// ─── chart ───────────────────────────────────────────────────────────────
+const vY = v => PLOT.h - (v - 60) / 200 * PLOT.h;                 // plot-local
+const cx_ = MIN.map((_, i) => PLOT.w * i / 6), cy_ = MIN.map(vY);
+const slope = (() => {                                            // monotone cubic (Fritsch–Carlson)
+  const n = cx_.length, d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d[i] = (cy_[i + 1] - cy_[i]) / (cx_[i + 1] - cx_[i]);
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { const k = 3 / Math.sqrt(s); m[i] = k * a * d[i]; m[i + 1] = k * b * d[i]; }
+  }
+  return m;
+})();
+let linePath = `M${cx_[0]} ${r3(cy_[0])}`;
+for (let i = 0; i < 6; i++) {
+  const h = cx_[i + 1] - cx_[i];
+  linePath += `C${r3(cx_[i] + h / 3)} ${r3(cy_[i] + slope[i] * h / 3)} ${r3(cx_[i + 1] - h / 3)} ${r3(cy_[i + 1] - slope[i + 1] * h / 3)} ${cx_[i + 1]} ${r3(cy_[i + 1])}`;
+}
+function curveY(x) {                                               // plot-local
+  const i = clamp(Math.floor(x / (PLOT.w / 6)), 0, 5), h = PLOT.w / 6, u = clamp((x - cx_[i]) / h);
+  const u2 = u * u, u3 = u2 * u;
+  return (2 * u3 - 3 * u2 + 1) * cy_[i] + (u3 - 2 * u2 + u) * h * slope[i] + (-2 * u3 + 3 * u2) * cy_[i + 1] + (u3 - u2) * h * slope[i + 1];
+}
+// The tooltip snaps to the nearest day; find when the cursor crosses each midpoint.
+function crossing(xm, t0, t1) { for (let t = t0; t < t1; t += 0.0005) if (cursorAt(t).x >= xm) return t; return t1; }
+const SNAP = { fri: crossing((xThu + xFri) / 2, E.hover, E.cmdk), sat: crossing((xFri + xSat) / 2, E.hover, E.cmdk) };
+const dotX = new Track(SP.fast).to(E.hover - 0.4, xThu).to(SNAP.fri, xFri).to(SNAP.sat, xSat);
+
+// ─── palette ─────────────────────────────────────────────────────────────
+const CMDS = ['Share track', 'Add to playlist', 'Go to artist', 'Sleep timer', 'Shuffle'];
+const KEYS = [E.k1, E.k2, E.k3], QUERY = 'sha';
+const queryLen = t => KEYS.filter(k => t >= k).length;
+const matches = (label, q) => q === '' || label.toLowerCase().split(' ').some(w => w.startsWith(q));
+// row slots after each keystroke
+const slotTracks = CMDS.map(() => new Track(SP.shape));
+const rowWins = [];
+CMDS.forEach((c, i) => {
+  slotTracks[i].to(E.palette - 0.3, i);
+  let out = E.enter + 0.05;
+  for (let n = 1; n <= 3; n++) {
+    const visible = CMDS.filter(cc => matches(cc, QUERY.slice(0, n)));
+    if (!visible.includes(c)) { out = Math.min(out, KEYS[n - 1]); continue; }
+    slotTracks[i].to(KEYS[n - 1], visible.indexOf(c));
+  }
+  rowWins.push(win(E.palette + 0.1 + 0.028 * i, out));
+});
+const caretX = new Track(SP.caret);
+
+// ─── content visibility ─────────────────────────────────────────────────
+const V = {
+  btn: win(E.back + 0.1, E.click1 + T),
+  loader: win(E.click1 + 0.08, E.check + 0.06),
+  check: win(E.check, E.island),
+  art: win(E.island + 0.08, E.slider), wave: win(E.island + 0.12, E.slider),
+  title: win(E.expand + 0.1, E.slider), artist: win(E.expand + 0.13, E.slider),
+  ptrack: win(E.expand + 0.12, E.slider), times: win(E.expand + 0.15, E.slider),
+  ctrl: [0, 1, 2].map(i => win(E.expand + 0.15 + 0.03 * i, E.slider)),
+  blob: win(E.expand + 0.12, E.cmdk),
+  spk: win(E.slider + 0.1, E.toggle),
+  tabs: [0, 1, 2].map(i => win(E.tabs + 0.08 + 0.035 * i, E.cmdk)),
+  lbl: win(E.chart + 0.1, E.cmdk), total: win(E.chart + 0.13, E.cmdk),
+  plot: win(E.chart + 0.12, E.cmdk), days: win(E.chart + 0.16, E.cmdk),
+  hov: win(E.hover, E.cmdk),
+  tip: [win(E.hover, SNAP.fri, SP.in, SP.out), win(SNAP.fri, SNAP.sat, SP.in, SP.out), win(SNAP.sat, E.cmdk)],
+  key: win(E.cmdk + 0.06, E.palette, SP.in, { r: 0.1, z: 1 }),
+  psearch: win(E.palette + 0.09, E.enter + 0.05), pholder: win(E.palette + 0.11, E.k1, SP.in, { r: 0.08, z: 1 }),
+  caret: win(E.palette + 0.11, E.enter + 0.05), psep: win(E.palette + 0.09, E.enter + 0.05), phl: win(E.palette + 0.14, E.enter + 0.05),
+  chars: KEYS.map(k => win(k, E.enter + 0.05, { r: 0.12, z: 1 })),
+  ret: win(E.k3 + 0.06, E.enter + 0.05),
+  toast: win(E.enter + 0.1, E.back),
+};
+caretX.to(E.palette - 0.3, 0);
+
+// ─── sounds: every UI sound sits on the time it describes ──────────────
+const SOUNDS = [
+  [E.click1, 'click'], [E.check, 'success'], [E.expand, 'click'], [E.play, 'click'],
+  [E.grab, 'grab'], [E.drop, 'drop'], [E.vgrab, 'grab'], [E.vmax, 'limit'], [E.vdrop, 'drop'],
+  [E.flip, 'toggle'], [E.tab, 'click'], [E.hover, 'tick'], [SNAP.fri, 'tick-soft'], [SNAP.sat, 'tick'],
+  [E.cmdk, 'key'], [E.k1, 'key'], [E.k2, 'key'], [E.k3, 'key'], [E.enter, 'enter'], [E.toast, 'pop'],
+].map(([t, id]) => {
+  // pan cursor sounds a little toward where the cursor is on screen; keys stay centred
+  const keyboard = id === 'key' || id === 'enter';
+  const sx = (cursorAt(t).x - C.fx.at(t)) * Math.exp(C.lz.at(t));
+  return { t: r4(t), id, pan: keyboard ? 0 : r3(clamp(sx / 720, -1, 1) * 0.45) };
+});
+
+// ─── DOM ─────────────────────────────────────────────────────────────────
+const el = {};
+for (const id of ['world', 'shape', 'reveal', 'blobReveal', 'btnLabel', 'loader', 'arc', 'check', 'checkPath', 'art', 'disc', 'wave', 'title', 'artist', 'ptrack', 'tEl', 'tRe',
+  'prev', 'pp', 'ppA', 'ppB', 'next', 'spk', 'spkInv', 'tabs', 'tabsInv', 'blob', 'card', 'lbl', 'total', 'plot', 'clipR', 'area', 'line', 'hov', 'guide', 'dot',
+  'days', 'tip', 'key', 'pal', 'psearch', 'pholder', 'esc', 'ptext', 'caret', 'psep', 'phl', 'ret', 'toast', 'tCheck', 'cursor', 'hud', 'fit', 'aud']) el[id] = $(id);
+el.title.textContent = TRACK.title;
+el.artist.textContent = TRACK.artist;
+el.days.innerHTML = DAYS.map((d, i) => `<span style="left:${r3(PLOT.w * i / 6)}px">${d}</span>`).join('');
+const dayEls = [...el.days.children], tipEls = [...el.tip.children], tabEls = [...el.tabs.children], tabInvEls = [...el.tabsInv.children];
+const waveBars = [...el.wave.children], charEls = [...el.ptext.children];
+const spkWaves = [el.spk, el.spkInv].map(s => [...s.children].slice(1));
+const rows = CMDS.map((c, i) => { const r = $('row' + i); return { el: r, b: r.querySelector('b'), i: r.querySelector('i'), q: -1 }; });
+el.line.setAttribute('d', linePath);
+el.area.setAttribute('d', linePath + `L${PLOT.w} ${PLOT.h}L0 ${PLOT.h}Z`);
+const LINE_LEN = el.line.getTotalLength();
+el.line.style.strokeDasharray = `${LINE_LEN} ${LINE_LEN}`;
+el.checkPath.style.strokeDasharray = el.tCheck.style.strokeDasharray = '100 100';   // both use pathLength="100"
+const ARC_C = TAU * 17;
+
+const BLUR = 11;                    // screen px of blur on a fully hidden element
+const setText = (e, s) => { if (e.textContent !== s) e.textContent = s; };
+function show(e, v, z) {
+  const st = e.style;
+  if (v < 0.002) { if (st.visibility !== 'hidden') st.visibility = 'hidden'; return false; }
+  st.visibility = 'visible';
+  st.opacity = v > 0.998 ? '1' : v.toFixed(4);
+  st.filter = v > 0.995 ? 'none' : `blur(${r3((1 - v) * BLUR / z)}px)`;
+  return true;
+}
+function put(e, x, y, ax = 0, ay = 0, sc = 1, extra = '') {
+  const st = e.style;
+  st.left = r3(x) + 'px'; st.top = r3(y) + 'px';
+  st.transformOrigin = `${ax * 100}% ${ay * 100}%`;
+  st.transform = `translate(${-ax * 100}%,${-ay * 100}%) scale(${r4(sc)})${extra}`;
+}
+const INK = [12, 12, 12], PAPER = [255, 255, 255], LIFT = [34, 34, 34];
+const mixc = (a, b, u) => a.map((x, i) => mix(x, b[i], u));
+const rgb = c => `rgb(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])})`;
+const fmt = s => { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const hm = m => `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+// play ▶ (two halves of the triangle) → pause ❚❚
+const PLAY = [[[6, 4], [13, 8], [13, 16], [6, 20]], [[13, 8], [20, 12], [20, 12], [13, 16]]];
+const PAUSE = [[[6, 4], [10, 4], [10, 20], [6, 20]], [[14, 4], [18, 4], [18, 20], [14, 20]]];
+const quad = (a, b, u) => 'M' + a.map((p, i) => `${r3(mix(p[0], b[i][0], u))} ${r3(mix(p[1], b[i][1], u))}`).join('L') + 'Z';
+function waveLevel(i, t) {
+  if (t < E.play) return 0;
+  const sub = B / 2, n = Math.floor(t / sub);
+  let e = 0;
+  for (let k = n; k > n - 4; k--) {
+    const tk = k * sub; if (tk < E.play - 1e-6) break;
+    const amp = (0.35 + 0.65 * hash(i + 1, k)) * (k % 2 ? 0.72 : 1), dt = t - tk;
+    e = Math.max(e, amp * (1 - Math.exp(-dt / 0.02)) * Math.exp(-dt / 0.17));
+  }
+  return e;
+}
+let measured = null;
+function measure() {
+  const cv = document.createElement('canvas').getContext('2d');
+  cv.font = '520 17px Geist';
+  measured = [0, 1, 2, 3].map(n => cv.measureText(QUERY.slice(0, n)).width);
+  KEYS.forEach((k, n) => caretX.to(k, measured[n + 1] + 1.5));
+}
+
+// ─── seek(t): every style is a pure function of t ──────────────────────
+function seek(time) {
+  const t = mod(time, T);
+  const z = Math.exp(C.lz.at(t)), fx = C.fx.at(t), fy = C.fy.at(t);
+  el.world.style.transform = `translate(720px,720px) scale(${r4(z)}) translate(${r3(-fx)}px,${r3(-fy)}px)`;
+
+  // shape
+  const s = shapeAt(t), hov = clamp(S.hover.at(t));
+  const ss = el.shape.style;
+  ss.left = r3(s.x0) + 'px'; ss.top = r3(s.y0) + 'px'; ss.width = r3(s.w) + 'px'; ss.height = r3(s.h) + 'px';
+  ss.borderRadius = r3(s.r) + 'px';
+  ss.transform = `scale(${r4(S.press.at(t))})`;
+  const lx = x => x - s.x0, ly = y => y - s.y0;
+  // colour: the old colour underneath, the new one growing inside until it covers the shape
+  const fl = flipAt(FLIPS, t), done = fl.p * OVERGROW >= 1.002;
+  const flipping = fl.p > 0.0005 && !done;
+  const lum = mix(fl.from, fl.to, clamp(fl.p * OVERGROW));
+  ss.background = rgb((done ? fl.to : fl.from) ? PAPER : mixc(INK, LIFT, hov));
+  ss.boxShadow = `0 1px 2px rgba(0,0,0,${(0.06 + 0.02 * lum).toFixed(3)}), 0 12px 28px -12px rgba(0,0,0,${mix(0.32, 0.2, lum).toFixed(3)}), 0 0 0 .5px rgba(0,0,0,${(0.07 * lum).toFixed(3)})`;
+  const region = flipping ? { ...flipRegion(fl, fl.p, s), t: fl.t } : null;
+  el.reveal.style.visibility = region ? 'visible' : 'hidden';
+  if (region) {
+    el.reveal.style.background = rgb(fl.to ? PAPER : INK);
+    el.reveal.style.clipPath = insetOf(region, s);
+  }
+
+  // 1 button label
+  let v = V.btn.at(t);
+  if (show(el.btnLabel, v, z)) put(el.btnLabel, s.w / 2, s.h / 2, 0.5, 0.5, 0.93 + 0.07 * v);
+
+  // 2 loader: the arc whips around once per beat, fastest on the beat, then closes into a ring
+  v = V.loader.at(t);
+  if (show(el.loader, v, z)) {
+    put(el.loader, s.w / 2, s.h / 2, 0.5, 0.5, 0.9 + 0.1 * v);
+    const u = t / B + 0.5, f = u - Math.floor(u), e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+    const close = step(t - E.check, SP.fast);
+    const len = mix(0.18 + 0.44 * smooth(E.click1, E.check, t), 1, close);
+    el.arc.setAttribute('transform', `rotate(${r3((Math.floor(u) + e) * 360 - 90)})`);
+    el.arc.style.strokeDasharray = `${r3(len * ARC_C)} ${r3(ARC_C)}`;
+  }
+  // 3 check draws itself
+  v = V.check.at(t);
+  if (show(el.check, v, z)) {
+    put(el.check, s.w / 2, s.h / 2, 0.5, 0.5, 1);
+    el.checkPath.style.strokeDashoffset = r3(100 * (1 - clamp(step(t - E.check - 0.03, { r: 0.34, z: 1 }))));
+  }
+
+  // 4–5 island → player
+  v = V.art.at(t);
+  if (show(el.art, v, z)) {
+    const sz = A.s.at(t);
+    put(el.art, lx(A.x.at(t)) + sz / 2, ly(A.y.at(t)) + sz / 2, 0.5, 0.5, 0.9 + 0.1 * v);
+    el.art.style.width = el.art.style.height = r3(sz) + 'px';
+    el.art.style.borderRadius = r3(A.r.at(t)) + 'px';
+    const dt = Math.max(0, t - E.play);
+    el.disc.setAttribute('transform', `rotate(${r3(170 * (dt - 0.25 * (1 - Math.exp(-dt / 0.25))))} 50 50)`);
+  }
+  v = V.wave.at(t);
+  if (show(el.wave, v, z)) {
+    put(el.wave, lx(W.x.at(t)) - 21.4, ly(W.y.at(t)), 0, 0, 1);
+    const live = step(t - E.play, SP.fast);
+    waveBars.forEach((b, i) => {
+      const h = mix([6, 10, 7, 8][i], 5 + 13 * waveLevel(i, t), live);  // a resting equalizer until play
+      b.style.left = (i * 6) + 'px'; b.style.top = r3(-h / 2) + 'px'; b.style.height = r3(h) + 'px';
+      b.style.opacity = r4(0.45 + 0.55 * live);
+    });
+  }
+  v = V.title.at(t);
+  if (show(el.title, v, z)) put(el.title, lx(-72) + (1 - v) * 8, ly(-76), 0, 0, 1);
+  v = V.artist.at(t);
+  if (show(el.artist, v, z)) put(el.artist, lx(-72) + (1 - v) * 8, ly(-54), 0, 0, 1);
+  const th = thick.at(t);
+  v = V.ptrack.at(t);
+  if (show(el.ptrack, v, z)) {
+    put(el.ptrack, lx(BAR.l), ly(BAR.y - th / 2), 0, 0, 1);
+    Object.assign(el.ptrack.style, { width: BAR.w + 'px', height: r3(th) + 'px', borderRadius: r3(th / 2) + 'px' });
+  }
+  v = V.times.at(t);
+  const tShown = show(el.tEl, v, z);
+  show(el.tRe, v, z);
+  if (tShown) {
+    const p = progress(t);
+    setText(el.tEl, fmt(p * TRACK.dur)); setText(el.tRe, '−' + fmt(TRACK.dur - p * TRACK.dur));
+    put(el.tEl, lx(BAR.l), ly(BAR.y + th / 2 + 7), 0, 0, 1);
+    put(el.tRe, lx(BAR.l + BAR.w), ly(BAR.y + th / 2 + 7), 1, 0, 1);
+  }
+  [el.prev, el.pp, el.next].forEach((e, i) => {
+    const vi = V.ctrl[i].at(t);
+    if (show(e, vi, z)) put(e, lx(-64 + 64 * i), ly(66), 0.5, 0.5, (0.86 + 0.14 * vi) * (i === 1 ? ppPress.at(t) : 1));
+  });
+  if (el.pp.style.visibility === 'visible') {
+    const u = step(t - E.play, { r: 0.3, z: 0.86 });
+    el.ppA.setAttribute('d', quad(PLAY[0], PAUSE[0], u)); el.ppB.setAttribute('d', quad(PLAY[1], PAUSE[1], u));
+  }
+
+  // 6–9 blob: progress fill → volume fill → knob → indicator
+  const bl = blobAt(t);
+  v = V.blob.at(t);
+  if (show(el.blob, v, z)) {
+    put(el.blob, lx(bl.x0), ly(bl.y0), 0, 0, 1);
+    const bf = flipAt(BLOB_FLIPS, t), inRegion = region && region.t === bf.t;
+    const blobDone = bf.t !== fl.t || done;                                   // a blob flip always rides a shape flip
+    Object.assign(el.blob.style, { width: r3(bl.x1 - bl.x0) + 'px', height: r3(bl.y1 - bl.y0) + 'px', borderRadius: r3(Math.min(bl.r, (bl.x1 - bl.x0) / 2, (bl.y1 - bl.y0) / 2)) + 'px',
+      background: rgb((blobDone ? bf.to : bf.from) ? PAPER : INK) });
+    el.blobReveal.style.visibility = inRegion ? 'visible' : 'hidden';
+    if (inRegion) {
+      el.blobReveal.style.background = rgb(bf.to ? PAPER : INK);
+      el.blobReveal.style.clipPath = insetOf(region, bl);
+    }
+  }
+  // 7 speaker (black copy on the track, white copy inside the fill)
+  v = V.spk.at(t);
+  if (show(el.spk, v, z)) {
+    const pop = step(t - E.vmax, SP.press) - step(t - E.vmax - 0.1, SP.fast);     // the icon kicks when it hits max
+    const ix = s.x0 + 30, iy = s.cy, sc = (0.9 + 0.1 * v) * (1 + 0.16 * pop);     // icon centre, world
+    put(el.spk, lx(ix), ly(iy), 0.5, 0.5, sc);
+    show(el.spkInv, v, z);
+    put(el.spkInv, ix - bl.x0, iy - bl.y0, 0.5, 0.5, sc);
+    const lv = level(t);
+    spkWaves.forEach(ws => ws.forEach((w, k) => { w.style.opacity = r4(smooth([0.08, 0.42, 0.78][k], [0.16, 0.5, 0.86][k], lv)); }));
+  } else el.spkInv.style.visibility = 'hidden';
+
+  // 9 tabs (labels invert inside the indicator)
+  let anyTab = false;
+  tabEls.forEach((e, i) => {
+    const vi = V.tabs[i].at(t);
+    const on = vi > 0.002;
+    anyTab = anyTab || on;
+    e.style.opacity = tabInvEls[i].style.opacity = r4(vi);
+    e.style.filter = tabInvEls[i].style.filter = vi > 0.995 ? 'none' : `blur(${r3((1 - vi) * BLUR / z)}px)`;
+  });
+  el.tabs.style.visibility = el.tabsInv.style.visibility = anyTab ? 'visible' : 'hidden';
+  if (anyTab) {
+    put(el.tabs, lx(TAB0), ly(-12), 0, 0, 1);
+    el.tabsInv.style.left = r3(TAB0 - bl.x0) + 'px'; el.tabsInv.style.top = r3(-12 - bl.y0) + 'px';
+  }
+
+  // 10 chart card
+  el.card.style.left = r3(lx(CARD.l)) + 'px'; el.card.style.top = r3(ly(CARD.t)) + 'px';
+  v = V.lbl.at(t);
+  if (show(el.lbl, v, z)) put(el.lbl, 20, 62 + (1 - v) * 6, 0, 0, 1);
+  const pd = clamp(step(t - E.draw, SP.draw));
+  v = V.total.at(t);
+  if (show(el.total, v, z)) { put(el.total, 20, 80 + (1 - v) * 6, 0, 0, 1); setText(el.total, hm(Math.round(1104 * pd))); }
+  v = V.plot.at(t);
+  if (show(el.plot, v, z)) {
+    put(el.plot, 20, 130, 0, 0, 1);
+    el.line.style.strokeDashoffset = r3(LINE_LEN * (1 - pd));
+    el.line.style.opacity = pd > 0.002 ? 1 : 0;
+    const head = pd > 0.002 ? el.line.getPointAtLength(LINE_LEN * pd).x : 0;
+    el.clipR.setAttribute('width', r3(head + 4));
+  }
+  v = V.days.at(t);
+  const hv = V.hov.at(t), dx = dotX.at(t) - PLOT.l;
+  if (show(el.days, v, z)) {
+    put(el.days, 20, 250, 0, 0, 1);
+    dayEls.forEach((d, i) => { d.style.opacity = r4(0.42 + 0.58 * hv * clamp(1 - Math.abs(dx - PLOT.w * i / 6) / 30)); });
+  }
+  if (show(el.hov, hv, z)) {
+    put(el.hov, 20, 130, 0, 0, 1);
+    const dy = curveY(dx);
+    el.guide.setAttribute('x1', r3(dx)); el.guide.setAttribute('x2', r3(dx));
+    el.dot.setAttribute('cx', r3(dx)); el.dot.setAttribute('cy', r3(dy));
+    el.dot.setAttribute('r', r3(5 * (0.6 + 0.4 * hv)));
+  }
+  tipEls.forEach((e, i) => { const vi = V.tip[i].at(t); e.style.opacity = r4(vi); e.style.filter = vi > 0.995 ? 'none' : `blur(${r3((1 - vi) * 6 / z)}px)`; });
+  if (show(el.tip, hv, z)) put(el.tip, 20 + dx, 130 + curveY(dx) - 14, 0.5, 1, 0.9 + 0.1 * hv);
+
+  // 11 ⌘K keycap
+  v = V.key.at(t);
+  if (show(el.key, v, z)) put(el.key, s.w / 2, s.h / 2, 0.5, 0.5, 0.9 + 0.1 * v);
+
+  // 12 palette
+  el.pal.style.left = r3(lx(PAL.l)) + 'px'; el.pal.style.top = r3(ly(PAL.t)) + 'px';
+  if (show(el.psearch, V.psearch.at(t), z)) put(el.psearch, 20, 20, 0, 0, 1);
+  if (show(el.pholder, V.pholder.at(t), z)) put(el.pholder, 52, 20, 0, 0, 1);
+  if (show(el.esc, V.psearch.at(t), z)) put(el.esc, 392 - 18, 30, 1, 0.5, 1);
+  const ql = queryLen(t), q = QUERY.slice(0, ql);
+  let anyChar = 0;
+  charEls.forEach((c, i) => { const vi = V.chars[i].at(t); anyChar = Math.max(anyChar, vi); c.style.opacity = r4(vi); c.style.transform = `translateY(${r3((1 - vi) * 5)}px)`; c.style.filter = vi > 0.99 ? 'none' : `blur(${r3((1 - vi) * 6 / z)}px)`; });
+  el.ptext.style.visibility = anyChar > 0.002 ? 'visible' : 'hidden';
+  put(el.ptext, 52, 20, 0, 0, 1);
+  const typing = t >= E.k1 - 0.05 && t < E.k3 + 0.3;              // solid while typing, blinks on the beat otherwise
+  const blink = typing || mod(t / B, 1) < 0.5 ? 1 : 0;
+  if (show(el.caret, V.caret.at(t) * blink, z)) put(el.caret, 52 + caretX.at(t), 19, 0, 0, 1);
+  if (show(el.psep, V.psep.at(t), z)) put(el.psep, 0, 60, 0, 0, 1);
+  if (show(el.phl, V.phl.at(t), z)) {
+    put(el.phl, 8, 70, 0, 0, 1);
+    const flash = step(t - E.enter, { r: 0.06, z: 1 }) - step(t - E.enter - 0.06, { r: 0.2, z: 1 });
+    el.phl.style.background = `rgba(12,12,12,${(0.055 + 0.07 * clamp(flash)).toFixed(3)})`;
+  }
+  rows.forEach((r, i) => {
+    const vi = rowWins[i].at(t);
+    if (!show(r.el, vi, z)) return;
+    put(r.el, 20, 68 + 46 * slotTracks[i].at(t) + 23, 0, 0.5, 0.96 + 0.04 * vi);
+    if (r.q !== ql) {
+      r.q = ql;
+      const label = CMDS[i], hit = q && label.toLowerCase().startsWith(q) ? q.length : 0;
+      r.b.textContent = label.slice(0, hit); r.i.textContent = label.slice(hit);
+      r.b.style.color = '#0C0C0C'; r.i.style.color = ql ? 'rgba(12,12,12,.42)' : 'rgba(12,12,12,.86)';
+    }
+  });
+  if (show(el.ret, V.ret.at(t), z)) put(el.ret, 392 - 24, 68 + 23, 1, 0.5, 1);
+
+  // 13 toast
+  v = V.toast.at(t);
+  if (show(el.toast, v, z)) {
+    put(el.toast, s.w / 2, s.h / 2, 0.5, 0.5, 0.92 + 0.08 * v);
+    el.tCheck.style.strokeDashoffset = r3(100 * (1 - clamp(step(t - E.toast, SP.tick))));
+  }
+
+  // cursor (screen space, rides on the world point it is touching)
+  const cp = cursorAt(t), cv = cursorVis.at(t);
+  const sx = 720 + (cp.x - fx) * z, sy = 720 + (cp.y - fy) * z;
+  el.cursor.style.opacity = r4(cv);
+  el.cursor.style.visibility = cv < 0.002 ? 'hidden' : 'visible';
+  el.cursor.style.transform = `translate(${r3(sx - 2.75)}px,${r3(sy - 2.475)}px) scale(${r4(CP.at(t))})`;
+  el.cursor.style.transformOrigin = '2.75px 2.475px';
+
+  if (!RENDER) {
+    const b = Math.floor(t / B + 1e-6);
+    el.hud.textContent = `${t.toFixed(2)}s   bar ${Math.floor(b / 4) + 1}.${b % 4 + 1}   space play/pause · ←→ step · click scrub`;
+  }
+}
+
+// Numbers that must match across the loop seam (cursor position and speed included).
+// Hidden elements are weighted out: only what is on screen has to line up.
+const SAMPLE_NAMES = ['cam.fx', 'cam.fy', 'cam.lz', 'shape.cx', 'shape.cy', 'shape.w', 'shape.h', 'shape.r', 'shape.lum', 'shape.press', 'shape.hover',
+  'cursor.x', 'cursor.y', 'cursor.press', 'cursor.vis', 'blob.x0', 'blob.x1', 'blob.y0', 'blob.y1', 'vis.btn', 'vis.toast'];
+function sample(time) {
+  const t = mod(time, T), s = shapeAt(t), c = cursorAt(t), b = blobAt(t), bv = V.blob.at(t);
+  return [C.fx.at(t), C.fy.at(t), C.lz.at(t), s.cx, s.cy, s.w, s.h, s.r, shapeLum(t), S.press.at(t), S.hover.at(t), c.x, c.y, CP.at(t), cursorVis.at(t),
+    b.x0 * bv, b.x1 * bv, b.y0 * bv, b.y1 * bv, V.btn.at(t), V.toast.at(t)];
+}
+// Position and speed on both sides of the seam: a jump shows up as a huge slope or speed change.
+function loopCheck(d = 1e-4) {
+  const a = sample(T - d), b = sample(d), a2 = sample(T - 2 * d), b2 = sample(2 * d);
+  let worst = { slope: 0, speedJump: 0, slopeAt: '', speedAt: '' };
+  a.forEach((x, i) => {
+    const slope = Math.abs(x - b[i]) / (2 * d), speedJump = Math.abs((b2[i] - b[i]) - (a[i] - a2[i])) / d;
+    if (slope > worst.slope) Object.assign(worst, { slope, slopeAt: SAMPLE_NAMES[i] });
+    if (speedJump > worst.speedJump) Object.assign(worst, { speedJump, speedAt: SAMPLE_NAMES[i] });
+  });
+  return worst;
+}
+
+const ready = document.fonts.load('560 18px Geist').then(() => document.fonts.ready).then(() => { measure(); seek(+P.get('t') || 0); });
+window.MORPH = { T, B, E, seek, sounds: SOUNDS, ready, loopCheck, sample, track: TRACK };
+
+// ─── preview player (not used by the renderer) ─────────────────────────
+if (!RENDER) {
+  el.aud.src = 'audio/mix.wav';
+  const fit = () => {
+    const k = Math.min(innerWidth, innerHeight - 24) / 1440;
+    el.fit.style.transform = `translate(${(innerWidth - 1440 * k) / 2}px,0) scale(${k})`;
+  };
+  addEventListener('resize', fit); fit();
+  let playing = false, t = +P.get('t') || 0, last = 0;
+  const toggle = () => {
+    playing = !playing;
+    if (playing) { el.aud.currentTime = mod(t, T); el.aud.play().catch(() => {}); } else el.aud.pause();
+    last = performance.now();
+  };
+  addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); toggle(); }
+    if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') { playing = false; el.aud.pause(); t = mod(t + (e.code === 'ArrowRight' ? 1 : -1) / 60, T); }
+  });
+  el.fit.addEventListener('click', e => { const r = el.fit.getBoundingClientRect(); t = (e.clientX - r.left) / r.width * T; el.aud.currentTime = t; });
+  ready.then(() => {
+    const loop = now => {
+      if (playing) {
+        t = !el.aud.paused && el.aud.readyState >= 2 ? el.aud.currentTime : t + (now - last) / 1000;
+        if (t >= T) { t = mod(t, T); el.aud.currentTime = t; }
+      }
+      last = now;
+      seek(t);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+}
+})();
+</script>
+</body>
+</html>

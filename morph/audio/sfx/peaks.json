@@ -1,0 +1,46 @@
+{
+  "click": {
+    "peak_s": 0.000792,
+    "length_s": 0.05
+  },
+  "grab": {
+    "peak_s": 0.001333,
+    "length_s": 0.05
+  },
+  "drop": {
+    "peak_s": 0.001,
+    "length_s": 0.035
+  },
+  "limit": {
+    "peak_s": 0.001063,
+    "length_s": 0.08
+  },
+  "toggle": {
+    "peak_s": 0.000562,
+    "length_s": 0.09
+  },
+  "tick": {
+    "peak_s": 0.000812,
+    "length_s": 0.03
+  },
+  "tick-soft": {
+    "peak_s": 0.000917,
+    "length_s": 0.03
+  },
+  "key": {
+    "peak_s": 0.002375,
+    "length_s": 0.09
+  },
+  "enter": {
+    "peak_s": 0.001354,
+    "length_s": 0.09
+  },
+  "success": {
+    "peak_s": 0.054417,
+    "length_s": 0.42
+  },
+  "pop": {
+    "peak_s": 0.001563,
+    "length_s": 0.12
+  }
+}
